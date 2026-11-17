@@ -609,7 +609,8 @@ def read_forward_solution(fname, include=(), exclude=(), *, ordered=True, verbos
 
         src = _read_source_spaces_from_tree(fid, tree, patch_stats=False)
         for s in src:
-            s["id"] = find_source_space_hemi(s)
+            if s["id"] < FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET:
+                s["id"] = find_source_space_hemi(s)
 
         fwd = None
 

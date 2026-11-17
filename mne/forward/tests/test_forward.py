@@ -26,6 +26,7 @@ from mne import (
     read_forward_solution,
     write_forward_solution,
 )
+from mne._fiff.constants import FIFF
 from mne._fiff.pick import pick_channels_forward
 from mne.channels import equalize_channels
 from mne.datasets import testing
@@ -132,6 +133,16 @@ def test_io_forward(tmp_path):
     assert "dev_head_t" in fwd_read["info"]
     assert "mri_head_t" in fwd_read
     assert_array_almost_equal(fwd["sol"]["data"], fwd_read["sol"]["data"])
+
+    # subcortical source space ids must survive the round trip (gh-14460)
+    offset = FIFF.FIFFV_MNE_SURF_SUBCORTICAL_OFFSET
+    for ii, s in enumerate(fwd["src"]):
+        s["id"] = offset + 10 + ii
+    with pytest.warns(RuntimeWarning, match="stored on disk"):
+        write_forward_solution(fname_temp, fwd, overwrite=True)
+    fwd_read = read_forward_solution(fname_temp)
+    assert [s["id"] for s in fwd_read["src"]] == [s["id"] for s in fwd["src"]]
+    assert fwd_read["src"].kind == "subcortical_surf"
 
     fwd = read_forward_solution(fname_meeg)
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True, use_cps=False)
